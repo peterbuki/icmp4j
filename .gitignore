@@ -1,12 +1,17 @@
 /build/
 /bin/
 
+gradle
+gradlew*
 .gradle
 
 # Eclipse project files
 .classpath
 .project
 .settings
+
+# IntelliJ related files
+.idea
 
 # commun annoying files
 .DS_Store

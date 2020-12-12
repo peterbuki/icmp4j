@@ -2,8 +2,8 @@ package org.icmp4j.platform.java;
 
 import java.net.InetAddress;
 
-import org.icmp4j.IcmpPingResponse;
 import org.icmp4j.IcmpPingRequest;
+import org.icmp4j.IcmpPingResponse;
 import org.icmp4j.IcmpPingUtil;
 import org.icmp4j.platform.NativeBridge;
 
@@ -44,57 +44,54 @@ import org.icmp4j.platform.NativeBridge;
  */
 public class JavaNativeBridge extends NativeBridge {
 
-  /**
-   * The NativeBridge interface
-   * 
-   * Executes the given icmp ECHO request
-   * This call blocks until a response is received or a timeout is reached
-   * 
-   * The jna implementation adapted from:
-   *   http://hp.vector.co.jp/authors/VA033015/jnasamples.html
-   * 
-   * @param request
-   * @return IcmpEchoResponse
-   */
-  @Override
-  public IcmpPingResponse executePingRequest (final IcmpPingRequest request) {
+    /**
+     * The NativeBridge interface
+     * <p>
+     * Executes the given icmp ECHO request
+     * This call blocks until a response is received or a timeout is reached
+     * <p>
+     * The jna implementation adapted from:
+     * http://hp.vector.co.jp/authors/VA033015/jnasamples.html
+     *
+     * @param request
+     * @return IcmpEchoResponse
+     */
+    @Override
+    public IcmpPingResponse executePingRequest(final IcmpPingRequest request) {
 
-    // handle exceptions
-    try {
+        // handle exceptions
+        try {
 
-      // delegate
-      final String host = request.getHost ();
-      final InetAddress address = InetAddress.getByName (host);
-      final int timeout = new Long (request.getTimeout ()).intValue ();
-      final long pingStartNanoTime = System.nanoTime ();
-      final long icmpSendEchoStartTime = System.currentTimeMillis ();
-      final boolean successFlag = address.isReachable (timeout);
-      final long icmpSendEchoDuration = System.currentTimeMillis () - icmpSendEchoStartTime;
-      final long rttNanos = System.nanoTime () - pingStartNanoTime;
-      final int rtt = new Long (rttNanos / (1000 * 1000)).intValue ();
-      
-      // check for timeout
-      final boolean timeoutFlag = icmpSendEchoDuration >= timeout;
-      if (timeoutFlag) {
-        return IcmpPingUtil.createTimeoutIcmpPingResponse (icmpSendEchoDuration);
-      }
+            // delegate
+            final String host = request.getHost();
+            final InetAddress address = InetAddress.getByName(host);
+            final int timeout = new Long(request.getTimeout()).intValue();
+            final long pingStartNanoTime = System.nanoTime();
+            final long icmpSendEchoStartTime = System.currentTimeMillis();
+            final boolean successFlag = address.isReachable(timeout);
+            final long icmpSendEchoDuration = System.currentTimeMillis() - icmpSendEchoStartTime;
+            final long rttNanos = System.nanoTime() - pingStartNanoTime;
+            final int rtt = new Long(rttNanos / (1000 * 1000)).intValue();
 
-      // objectify
-      final IcmpPingResponse response = new IcmpPingResponse ();
-      response.setHost (null);
-      response.setErrorMessage (null);
-      response.setRtt (rtt);
-      response.setSize (0);
-      response.setSuccessFlag (successFlag);
-      response.setTtl (0);
+            // check for timeout
+            final boolean timeoutFlag = icmpSendEchoDuration >= timeout;
+            if (timeoutFlag) {
+                return IcmpPingUtil.createTimeoutIcmpPingResponse(icmpSendEchoDuration);
+            }
 
-      // done
-      return response;
+            // objectify
+            return IcmpPingResponse.builder()
+                    .withHost(null)
+                    .withErrorMessage(null)
+                    .withRtt(rtt)
+                    .withSize(0)
+                    .withSuccessFlag(successFlag)
+                    .withTtl(0)
+                    .build();
+        } catch (final Exception e) {
+
+            // propagate
+            throw new RuntimeException(e);
+        }
     }
-    catch (final Exception e) {
-
-      // propagate
-      throw new RuntimeException (e);
-    }
-  }
 }

@@ -1,8 +1,8 @@
 package org.icmp4j;
 
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.icmp4j.platform.NativeBridge;
 
@@ -42,206 +42,205 @@ import org.icmp4j.platform.NativeBridge;
  * Time: 6:11:59 PM
  */
 public class IcmpPingUtil {
-  
-  // my attributes
-  private static final AtomicInteger nextId = new AtomicInteger ();
 
-  /**
-   * Returns a new IcmpEchoRequest filled with all default values
-   * These values can change over time
-   * @return IcmpEchoRequest
-   */
-  public static IcmpPingRequest createIcmpPingRequest () {
+    // my attributes
+    private static final AtomicInteger nextId = new AtomicInteger();
 
-    final IcmpPingRequest request = new IcmpPingRequest ();
-    request.setHost ("localhost");
-    request.setPacketSize (32);
-    request.setTimeout (5000);
-    request.setTtl (255);
-
-    // done
-    return request;
-  }
-  
-  /**
-   * Returns a new IcmpPingResponse filled with all default values to indicate a timeout
-   * These values can change over time
-   * @param duration
-   * @return IcmpEchoRequest
-   */
-  public static IcmpPingResponse createTimeoutIcmpPingResponse (final long duration) {
-    
-    // objectify
-    final IcmpPingResponse response = new IcmpPingResponse ();
-    response.setErrorMessage ("Timeout reached after " + duration + " msecs");
-    response.setSuccessFlag (false);
-    response.setTimeoutFlag (true);
-
-    // done
-    return response;
-  }
-
-  /**
-   * Executes the given icmp ECHO request
-   * This call blocks until a response is received or a timeout is reached
-   * 
-   * The jna implementation adapted from:
-   *   http://hp.vector.co.jp/authors/VA033015/jnasamples.html
-   * 
-   * @param request
-   * @return IcmpEchoResponse
-   */
-  public static IcmpPingResponse executePingRequest (final IcmpPingRequest request) {
-
-    // jit-initialize
-    Icmp4jUtil.initialize ();
-    
-    // assert preconditions
-    {
-      final String host = request.getHost ();
-      if (host == null) {
-        throw new RuntimeException ("host must be specified");
-      }
-    }
-    
-    // assert preconditions
-    {
-      final int packetSize = request.getPacketSize ();
-      if (packetSize == 0) {
-        throw new RuntimeException ("packetSize must be > 0: " + packetSize);
-      }
-    }
-    
-    // delegate
-    final NativeBridge nativeBridge = Icmp4jUtil.getNativeBridge ();
-    final IcmpPingResponse response = nativeBridge.executePingRequest (request);
-    
-    // postconditions: rtt should not be a crazy value
-    final int rtt = response.getRtt ();
-    if (rtt == Integer.MAX_VALUE) {
-      throw new RuntimeException ("rtt should not be MAX_VALUE: " + rtt);
+    /**
+     * Returns a new IcmpEchoRequest filled with all default values
+     * These values can change over time
+     *
+     * @return IcmpEchoRequest
+     */
+    public static IcmpPingRequest.IcmpPingRequestBuilder createIcmpPingRequestBuilder() {
+        return IcmpPingRequest.builder()
+                .withHost("localhost")
+                .withPacketSize(32)
+                .withTimeout(5000)
+                .withTtl(255);
     }
 
-    // postconditions: rtt should not be > timeout
-    final long timeout = request.getTimeout ();
-    if (timeout > 0 && rtt > timeout) {
-      throw new RuntimeException ("rtt should not be > timeout: " + rtt + " / " + timeout);
-    }
-    
-    // done
-    return response;
-  }
-  
-  /**
-   * Executes the given icmp ECHO request asynchronously
-   * 
-   * This call returns immediately
-   * When a response is available, a timeout takes place, or an exception is thrown, the given AsyncCallback is invoked
-   * 
-   * @param request
-   * @param asyncCallback
-   */
-  public static void executePingRequest (
-    final IcmpPingRequest request,
-    final AsyncCallback<IcmpPingResponse> asyncCallback) {
-    
-    // create thread
-    final Runnable runnable = new Runnable () {
+    /**
+     * Returns a new IcmpPingResponse filled with all default values to indicate a timeout
+     * These values can change over time
+     *
+     * @param duration
+     * @return IcmpEchoRequest
+     */
+    public static IcmpPingResponse createTimeoutIcmpPingResponse(final long duration) {
 
-      public void run () {
-        
-        // handle exceptions
-        try {
-          
-          // delegate & propagate response
-          final IcmpPingResponse response = executePingRequest (request);
-          asyncCallback.onSuccess (response);
+        // objectify
+        return IcmpPingResponse.builder()
+                .withErrorMessage(String.format("Timeout reached after %d msecs", duration))
+                .withSuccessFlag(false)
+                .withTimeoutFlag(true)
+                .build();
+    }
+
+    /**
+     * Executes the given icmp ECHO request
+     * This call blocks until a response is received or a timeout is reached
+     * <p>
+     * The jna implementation adapted from:
+     * http://hp.vector.co.jp/authors/VA033015/jnasamples.html
+     *
+     * @param request
+     * @return IcmpEchoResponse
+     */
+    public static IcmpPingResponse executePingRequest(final IcmpPingRequest request) {
+
+        // jit-initialize
+        Icmp4jUtil.initialize();
+
+        // assert preconditions
+        {
+            final String host = request.getHost();
+            if (host == null) {
+                throw new RuntimeException("host must be specified");
+            }
         }
-        catch (final Throwable throwable) {
-          
-          // propagate failure
-          asyncCallback.onFailure (throwable);
+
+        // assert preconditions
+        {
+            final int packetSize = request.getPacketSize();
+            if (packetSize == 0) {
+                throw new RuntimeException("packetSize must be > 0: " + packetSize);
+            }
         }
-      }
-    };
 
-    // delegate
-    final int id = nextId.incrementAndGet ();
-    final String name = "executePingRequest:id=" + id;
-    final Thread thread = new Thread (runnable, name);
-    thread.setDaemon (true);
-    thread.setPriority (Thread.MIN_PRIORITY);
-    thread.start ();
-  }
+        // delegate
+        final NativeBridge nativeBridge = Icmp4jUtil.getNativeBridge();
+        final IcmpPingResponse response = nativeBridge.executePingRequest(request);
 
-  /**
-   * Executes the given icmp ECHO request
-   * See executeIcmpPingRequest (IcmpPingRequest)
-   * @param host
-   * @param packetSize
-   * @param timeout
-   * @return IcmpPingResponse
-   */
-  public static IcmpPingResponse executePingRequest (
-    final String host,
-    final int packetSize,
-    final long timeout) {
+        // postconditions: rtt should not be a crazy value
+        final int rtt = response.getRtt();
+        if (rtt == Integer.MAX_VALUE) {
+            throw new RuntimeException("rtt should not be MAX_VALUE: " + rtt);
+        }
 
-    // delegate
-    final IcmpPingRequest request = IcmpPingUtil.createIcmpPingRequest ();
-    request.setHost (host);
-    request.setPacketSize (packetSize);
-    request.setTimeout (timeout);
-    return executePingRequest (request);
-  }
+        // postconditions: rtt should not be > timeout
+        final long timeout = request.getTimeout();
+        if (timeout > 0 && rtt > timeout) {
+            throw new RuntimeException("rtt should not be > timeout: " + rtt + " / " + timeout);
+        }
 
-  /**
-   * Executes multiple ping requests
-   * @param request
-   * @param packetCount
-   * @return List<IcmpPingResponse>
-   */
-  public static List<IcmpPingResponse> executePingRequests (
-    final IcmpPingRequest request,
-    final int packetCount) {
-    
-    // delegate
-    final List<IcmpPingResponse> responseList = new ArrayList<IcmpPingResponse> (packetCount);
-    for (int i = 1; i < packetCount; i++) {
-
-      // delegate
-      final IcmpPingResponse response = executePingRequest (request);
-      
-      // track
-      responseList.add(response);
+        // done
+        return response;
     }
-    
-    // done
-    return responseList;
-  }
-  
-  /**
-   * Uniformly formats the given response into a presentable message
-   * @param response
-   * @return String
-   */
-  public static String formatResponse (final IcmpPingResponse response) {
 
-    // request
-    final boolean successFlag = response.getSuccessFlag ();
-    final String address = response.getHost ();
-    final String message = response.getErrorMessage ();
-    final int size = response.getSize ();
-    final int rtt = response.getRtt ();
-    final int ttl = response.getTtl ();
+    /**
+     * Executes the given icmp ECHO request asynchronously
+     * <p>
+     * This call returns immediately
+     * When a response is available, a timeout takes place, or an exception is thrown, the given AsyncCallback is invoked
+     *
+     * @param request
+     * @param asyncCallback
+     */
+    public static void executePingRequest(
+            final IcmpPingRequest request,
+            final AsyncCallback<IcmpPingResponse> asyncCallback) {
 
-    // format windows style:
-    // ping google.com
-    //   Reply from 74.125.224.46: bytes=32 time=33ms TTL=56
-    // ping google.com.asd
-    //   Ping request could not find host google.com.asd. Please check the name and try again.
-    return successFlag ?
-      "Reply from " + address + ": bytes=" + size + " time=" + rtt + "ms TTL=" + ttl :
-      "Error: " + message;
-  }
+        // create thread
+        final Runnable runnable = new Runnable() {
+
+            public void run() {
+
+                // handle exceptions
+                try {
+
+                    // delegate & propagate response
+                    final IcmpPingResponse response = executePingRequest(request);
+                    asyncCallback.onSuccess(response);
+                } catch (final Throwable throwable) {
+
+                    // propagate failure
+                    asyncCallback.onFailure(throwable);
+                }
+            }
+        };
+
+        // delegate
+        final int id = nextId.incrementAndGet();
+        final String name = "executePingRequest:id=" + id;
+        final Thread thread = new Thread(runnable, name);
+        thread.setDaemon(true);
+        thread.setPriority(Thread.MIN_PRIORITY);
+        thread.start();
+    }
+
+    /**
+     * Executes the given icmp ECHO request
+     * See executeIcmpPingRequest (IcmpPingRequest)
+     *
+     * @param host
+     * @param packetSize
+     * @param timeout
+     * @return IcmpPingResponse
+     */
+    public static IcmpPingResponse executePingRequest(
+            final String host,
+            final int packetSize,
+            final long timeout) {
+
+        // delegate
+        final IcmpPingRequest request = IcmpPingUtil.createIcmpPingRequestBuilder()
+                .withHost(host)
+                .withPacketSize(packetSize)
+                .withTimeout(timeout)
+                .build();
+        return executePingRequest(request);
+    }
+
+    /**
+     * Executes multiple ping requests
+     *
+     * @param request
+     * @param packetCount
+     * @return List<IcmpPingResponse>
+     */
+    public static List<IcmpPingResponse> executePingRequests(
+            final IcmpPingRequest request,
+            final int packetCount) {
+
+        // delegate
+        final List<IcmpPingResponse> responseList = new ArrayList<IcmpPingResponse>(packetCount);
+        for (int i = 1; i < packetCount; i++) {
+
+            // delegate
+            final IcmpPingResponse response = executePingRequest(request);
+
+            // track
+            responseList.add(response);
+        }
+
+        // done
+        return responseList;
+    }
+
+    /**
+     * Uniformly formats the given response into a presentable message
+     *
+     * @param response
+     * @return String
+     */
+    public static String formatResponse(final IcmpPingResponse response) {
+
+        // request
+        final boolean successFlag = response.getSuccessFlag();
+        final String address = response.getHost();
+        final String message = response.getErrorMessage();
+        final int size = response.getSize();
+        final int rtt = response.getRtt();
+        final int ttl = response.getTtl();
+
+        // format windows style:
+        // ping google.com
+        //   Reply from 74.125.224.46: bytes=32 time=33ms TTL=56
+        // ping google.com.asd
+        //   Ping request could not find host google.com.asd. Please check the name and try again.
+        return successFlag ?
+                "Reply from " + address + ": bytes=" + size + " time=" + rtt + "ms TTL=" + ttl :
+                "Error: " + message;
+    }
 }

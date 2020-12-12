@@ -2,17 +2,16 @@ package org.icmp4j.platform.windows;
 
 import java.net.InetAddress;
 
-import org.icmp4j.IcmpPingResponse;
+import com.sun.jna.Memory;
+import com.sun.jna.Pointer;
+import com.sun.jna.platform.win32.Kernel32;
 import org.icmp4j.IcmpPingRequest;
+import org.icmp4j.IcmpPingResponse;
 import org.icmp4j.IcmpPingUtil;
 import org.icmp4j.platform.NativeBridge;
-import org.icmp4j.platform.windows.jna.Winsock2Library;
-import org.icmp4j.platform.windows.jna.LibraryUtil;
 import org.icmp4j.platform.windows.jna.IcmpLibrary;
-
-import com.sun.jna.Pointer;
-import com.sun.jna.Memory;
-import com.sun.jna.platform.win32.Kernel32;
+import org.icmp4j.platform.windows.jna.LibraryUtil;
+import org.icmp4j.platform.windows.jna.Winsock2Library;
 
 /**
  * Internet Control Message Protocol for Java (ICMP4J)
@@ -51,191 +50,208 @@ import com.sun.jna.platform.win32.Kernel32;
  */
 public class WindowsNativeBridge extends NativeBridge {
 
-  /**
-   * The NativeBridge interface
-   * Invoked to initialize this object
-   */
-  @Override
-  public void initialize () {
-    
-    // delegate
-    LibraryUtil.initialize ();
+    /**
+     * The NativeBridge interface
+     * Invoked to initialize this object
+     */
+    @Override
+    public void initialize() {
 
-    // initialize winsock2
-    final Winsock2Library winsock2Library = LibraryUtil.getWinsock2Library ();
-    final Winsock2Library.WSAData wsadata = new Winsock2Library.WSAData ();
-    if (winsock2Library.WSAStartup ((short) 2, wsadata) != 0 ){
-      throw new RuntimeException ("WSAStartup failed");
+        // delegate
+        LibraryUtil.initialize();
+
+        // initialize winsock2
+        final Winsock2Library winsock2Library = LibraryUtil.getWinsock2Library();
+        final Winsock2Library.WSAData wsadata = new Winsock2Library.WSAData();
+        if (winsock2Library.WSAStartup((short) 2, wsadata) != 0) {
+            throw new RuntimeException("WSAStartup failed");
+        }
     }
-  }
 
-  /**
-   * The NativeBridge interface
-   * Invoked to destroy this object
-   */
-  @Override
-  public void destroy () {
+    /**
+     * The NativeBridge interface
+     * Invoked to destroy this object
+     */
+    @Override
+    public void destroy() {
 
-    // destroy winsock2
-    final Winsock2Library winsock2Library = LibraryUtil.getWinsock2Library ();
-    if (winsock2Library != null) {
-      winsock2Library.WSACleanup ();
+        // destroy winsock2
+        final Winsock2Library winsock2Library = LibraryUtil.getWinsock2Library();
+        if (winsock2Library != null) {
+            winsock2Library.WSACleanup();
+        }
     }
-  }
 
-  /**
-   * The NativeBridge interface
-   * 
-   * Executes the given icmp ECHO request
-   * This call blocks until a response is received or a timeout is reached
-   * 
-   * The jna implementation adapted from:
-   *   http://hp.vector.co.jp/authors/VA033015/jnasamples.html
-   * 
-   * WARNING: this method is synchronized because if multiple threads call
-   * IcmpLibrary.IcmpSendEcho (), then the results are corrupted!!!
-   * So for now we have no choice other than figure out how to call IcmpSendEcho2,
-   * or call ping.exe
-   * 
-   * @param request
-   * @return IcmpEchoResponse
-   */
-  @Override
-  public synchronized IcmpPingResponse executePingRequest (final IcmpPingRequest request) {
+    /**
+     * The NativeBridge interface
+     * <p>
+     * Executes the given icmp ECHO request
+     * This call blocks until a response is received or a timeout is reached
+     * <p>
+     * The jna implementation adapted from:
+     * http://hp.vector.co.jp/authors/VA033015/jnasamples.html
+     * <p>
+     * WARNING: this method is synchronized because if multiple threads call
+     * IcmpLibrary.IcmpSendEcho (), then the results are corrupted!!!
+     * So for now we have no choice other than figure out how to call IcmpSendEcho2,
+     * or call ping.exe
+     *
+     * @param request
+     * @return IcmpEchoResponse
+     */
+    @Override
+    public synchronized IcmpPingResponse executePingRequest(final IcmpPingRequest request) {
 
-    // helpers
-    final IcmpLibrary icmpLibrary = LibraryUtil.getIcmpLibrary ();
-    final String host = request.getHost ();
-    final int ttl = request.getTtl ();
-    final int size = request.getPacketSize ();
-    final int timeout = new Long (request.getTimeout ()).intValue ();
+        // helpers
+        final IcmpLibrary icmpLibrary = LibraryUtil.getIcmpLibrary();
+        final String host = request.getHost();
+        final int ttl = request.getTtl();
+        final int size = request.getPacketSize();
+        final int timeout = new Long(request.getTimeout()).intValue();
 
-    // handle exceptions
-    Pointer hIcmp = null;
-    try {
+        // handle exceptions
+        Pointer hIcmp = null;
+        try {
 
-      // request
-      final InetAddress address = InetAddress.getByName (host);
-      final byte[] ipAddressAsByteArray = address.getAddress ();
+            // request
+            final InetAddress address = InetAddress.getByName(host);
+            final byte[] ipAddressAsByteArray = address.getAddress();
 
-      final IcmpLibrary.IpAddrByVal ipaddr = new IcmpLibrary.IpAddrByVal ();
-      ipaddr.bytes = ipAddressAsByteArray;
+            final IcmpLibrary.IpAddrByVal ipaddr = new IcmpLibrary.IpAddrByVal();
+            ipaddr.bytes = ipAddressAsByteArray;
 
-      final int replyDataSize = size + (new IcmpLibrary.IcmpEchoReply ().size ());
-      final Pointer sendData  = new Memory (size);
-      final Pointer replyData = new Memory (replyDataSize);
-      final IcmpLibrary.IpOptionInformationByRef ipOption = new IcmpLibrary.IpOptionInformationByRef ();
-      ipOption.ttl = (byte) ttl;
-      ipOption.tos = (byte) 0;
-      ipOption.flags = (byte) 0;
-      ipOption.optionsSize = (byte) 0;
-      ipOption.optionsData = null;
+            final int replyDataSize = size + (new IcmpLibrary.IcmpEchoReply().size());
+            final Pointer sendData = new Memory(size);
+            final Pointer replyData = new Memory(replyDataSize);
+            final IcmpLibrary.IpOptionInformationByRef ipOption = new IcmpLibrary.IpOptionInformationByRef();
+            ipOption.ttl = (byte) ttl;
+            ipOption.tos = (byte) 0;
+            ipOption.flags = (byte) 0;
+            ipOption.optionsSize = (byte) 0;
+            ipOption.optionsData = null;
 
-      // delegate
-      hIcmp = icmpLibrary.IcmpCreateFile ();
-      final long icmpSendEchoStartNanoTime = System.nanoTime ();
-      final int returnCode = icmpLibrary.IcmpSendEcho (
-        hIcmp,
-        ipaddr,
-        sendData,
-        (short) size,
-        ipOption,
-        replyData,
-        replyDataSize,
-        timeout);
-      final long icmpSendEchoNanoDuration = System.nanoTime () - icmpSendEchoStartNanoTime;
-      final long icmpSendEchoDuration = icmpSendEchoNanoDuration / 1000 / 1000;
-      
-      // immediately check for timeout - whether the IcmpSendEcho call returns 0 or something else,
-      // a last error of 11010 means that the call timed out, so return a proper response to indicate
-      // that the call timed out
-      final int lastError = Kernel32.INSTANCE.GetLastError ();
-      if (lastError == 11010) {
-        return IcmpPingUtil.createTimeoutIcmpPingResponse (icmpSendEchoDuration);
-      }
+            // delegate
+            hIcmp = icmpLibrary.IcmpCreateFile();
+            final long icmpSendEchoStartNanoTime = System.nanoTime();
+            final int returnCode = icmpLibrary.IcmpSendEcho(
+                    hIcmp,
+                    ipaddr,
+                    sendData,
+                    (short) size,
+                    ipOption,
+                    replyData,
+                    replyDataSize,
+                    timeout);
+            final long icmpSendEchoNanoDuration = System.nanoTime() - icmpSendEchoStartNanoTime;
+            final long icmpSendEchoDuration = icmpSendEchoNanoDuration / 1000 / 1000;
 
-      // check for failure
-      if (returnCode == 0) {
+            // immediately check for timeout - whether the IcmpSendEcho call returns 0 or something else,
+            // a last error of 11010 means that the call timed out, so return a proper response to indicate
+            // that the call timed out
+            final int lastError = Kernel32.INSTANCE.GetLastError();
+            if (lastError == 11010) {
+                return IcmpPingUtil.createTimeoutIcmpPingResponse(icmpSendEchoDuration);
+            }
 
-        // call failed
-        final String errorMessage = "Last error: " + lastError;
+            // check for failure
+            if (returnCode == 0) {
 
-        // objectify
-        final IcmpPingResponse response = new IcmpPingResponse ();
-        response.setErrorMessage (errorMessage);
-        response.setSuccessFlag (false);
+                // call failed
+                final String errorMessage = "Last error: " + lastError;
 
-        // done
-        return response;
-      }
-      
-      // the operation worked: check for success
-      final IcmpLibrary.IcmpEchoReply icmpEchoReply = new IcmpLibrary.IcmpEchoReply (replyData);
-      final boolean successFlag = icmpEchoReply.status == 0;
-      final String responseAddress = String.format ("%d.%d.%d.%d",
-        icmpEchoReply.address.bytes[0] & 0xff,
-        icmpEchoReply.address.bytes[1] & 0xff,
-        icmpEchoReply.address.bytes[2] & 0xff,
-        icmpEchoReply.address.bytes[3] & 0xff
-      );
-      final String message = getStatusText (icmpEchoReply.status);
+                // objectify
+                return IcmpPingResponse.builder()
+                        .withErrorMessage(errorMessage)
+                        .withSuccessFlag(false)
+                        .build();
+            }
 
-      // objectify
-      final IcmpPingResponse response = new IcmpPingResponse ();
-      response.setDuration (icmpSendEchoDuration);
-      response.setHost (responseAddress);
-      response.setErrorMessage (message);
-      response.setRtt (icmpEchoReply.roundTripTime);
-      response.setSize (icmpEchoReply.dataSize);
-      response.setSuccessFlag (successFlag);
-      response.setTtl (icmpEchoReply.options.ttl & 0xff);
+            // the operation worked: check for success
+            final IcmpLibrary.IcmpEchoReply icmpEchoReply = new IcmpLibrary.IcmpEchoReply(replyData);
+            final boolean successFlag = icmpEchoReply.status == 0;
+            final String responseAddress = String.format("%d.%d.%d.%d",
+                    icmpEchoReply.address.bytes[0] & 0xff,
+                    icmpEchoReply.address.bytes[1] & 0xff,
+                    icmpEchoReply.address.bytes[2] & 0xff,
+                    icmpEchoReply.address.bytes[3] & 0xff
+            );
+            final String message = getStatusText(icmpEchoReply.status);
 
-      // done
-      return response;
+            // objectify
+            return IcmpPingResponse.builder()
+                    .withDuration(icmpSendEchoDuration)
+                    .withHost(responseAddress)
+                    .withErrorMessage(message)
+                    .withRtt(icmpEchoReply.roundTripTime)
+                    .withSize(icmpEchoReply.dataSize)
+                    .withSuccessFlag(successFlag)
+                    .withTtl(icmpEchoReply.options.ttl & 0xff)
+                    .build();
+
+        } catch (final Exception e) {
+
+            // propagate
+            throw new RuntimeException(e);
+        } finally {
+
+            // cleanup
+            if (hIcmp != null) {
+                icmpLibrary.IcmpCloseHandle(hIcmp);
+            }
+        }
     }
-    catch (final Exception e) {
-      
-      // propagate
-      throw new RuntimeException (e);
-    }
-    finally {
 
-      // cleanup
-      if (hIcmp != null) {
-        icmpLibrary.IcmpCloseHandle (hIcmp);
-      }
+    /**
+     * Returns the text for the given status
+     *
+     * @param status
+     * @return String
+     */
+    private static String getStatusText(final int status) {
+        switch (status) {
+            case 0:
+                return "SUCCESS";
+            case 11000:
+                return "IP_SUCCESS";
+            case 11001:
+                return "IP_BUF_TOO_SMALL";
+            case 11002:
+                return "IP_DEST_NET_UNREACHABLE";
+            case 11003:
+                return "IP_DEST_HOST_UNREACHABLE";
+            case 11004:
+                return "IP_DEST_PROT_UNREACHABLE";
+            case 11005:
+                return "IP_DEST_PORT_UNREACHABLE";
+            case 11006:
+                return "IP_NO_RESOURCES";
+            case 11007:
+                return "IP_BAD_OPTION";
+            case 11008:
+                return "IP_HW_ERROR";
+            case 11009:
+                return "IP_PACKET_TOO_BIG";
+            case 11010:
+                return "IP_REQ_TIMED_OUT";
+            case 11011:
+                return "IP_BAD_REQ";
+            case 11012:
+                return "IP_BAD_ROUTE";
+            case 11013:
+                return "IP_TTL_EXPIRED_TRANSIT";
+            case 11014:
+                return "IP_TTL_EXPIRED_REASSEM";
+            case 11015:
+                return "IP_PARAM_PROBLEM";
+            case 11016:
+                return "IP_SOURCE_QUENCH";
+            case 11017:
+                return "IP_OPTION_TOO_BIG";
+            case 11018:
+                return "IP_BAD_DESTINATION";
+            case 11050:
+                return "IP_GENERAL_FAILURE";
+        }
+        return "UNKNOWN_STATUS";
     }
-  }
-  
-  /**
-   * Returns the text for the given status
-   * @param status
-   * @return String
-   */
-  private static String getStatusText (final int status) {
-    switch (status){
-      case 0 :     return "SUCCESS";
-      case 11000 : return "IP_SUCCESS";
-      case 11001 : return "IP_BUF_TOO_SMALL";
-      case 11002 : return "IP_DEST_NET_UNREACHABLE";
-      case 11003 : return "IP_DEST_HOST_UNREACHABLE";
-      case 11004 : return "IP_DEST_PROT_UNREACHABLE";
-      case 11005 : return "IP_DEST_PORT_UNREACHABLE";
-      case 11006 : return "IP_NO_RESOURCES";
-      case 11007 : return "IP_BAD_OPTION";
-      case 11008 : return "IP_HW_ERROR";
-      case 11009 : return "IP_PACKET_TOO_BIG";
-      case 11010 : return "IP_REQ_TIMED_OUT";
-      case 11011 : return "IP_BAD_REQ";
-      case 11012 : return "IP_BAD_ROUTE";
-      case 11013 : return "IP_TTL_EXPIRED_TRANSIT";
-      case 11014 : return "IP_TTL_EXPIRED_REASSEM";
-      case 11015 : return "IP_PARAM_PROBLEM";
-      case 11016 : return "IP_SOURCE_QUENCH";
-      case 11017 : return "IP_OPTION_TOO_BIG";
-      case 11018 : return "IP_BAD_DESTINATION";
-      case 11050 : return "IP_GENERAL_FAILURE";
-    }
-    return "UNKNOWN_STATUS";
-  }
 }

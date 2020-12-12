@@ -1,5 +1,8 @@
 package org.icmp4j;
 
+import lombok.Builder;
+import lombok.Data;
+
 /**
  * Internet Control Message Protocol for Java (ICMP4J)
  * http://www.icmp4j.org
@@ -35,24 +38,46 @@ package org.icmp4j;
  * Date: May 23, 2014
  * Time: 6:55:22 PM
  */
+@Data
+@Builder(setterPrefix = "with")
 public class IcmpPingRequest {
-  
-  // my attributes
-  private String host;
-  private int ttl;
-  private int packetSize;
-  private long timeout;
-  
-  // my attributes
-  public void setHost (final String host) { this.host = host; }
-  public String getHost () { return host; }
 
-  public void setTtl (final int ttl) { this.ttl = ttl; }
-  public int getTtl () { return ttl; }
+    // my attributes
+    private String host;
+    private int ttl;
+    private int packetSize;
+    private long timeout;
 
-  public void setPacketSize (final int packetSize) { this.packetSize = packetSize; }
-  public int getPacketSize () { return packetSize; }
-  
-  public void setTimeout (final long timeout) { this.timeout = timeout; }
-  public long getTimeout () { return timeout; }
+    // my attributes
+    public void setHost(final String host) {
+        this.host = host;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public void setTtl(final int ttl) {
+        this.ttl = ttl;
+    }
+
+    public int getTtl() {
+        return ttl;
+    }
+
+    public void setPacketSize(final int packetSize) {
+        this.packetSize = packetSize;
+    }
+
+    public int getPacketSize() {
+        return packetSize;
+    }
+
+    public void setTimeout(final long timeout) {
+        this.timeout = timeout;
+    }
+
+    public long getTimeout() {
+        return timeout;
+    }
 }

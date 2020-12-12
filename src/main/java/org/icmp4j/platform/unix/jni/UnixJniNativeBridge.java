@@ -6,7 +6,6 @@ import org.icmp4j.platform.NativeBridge;
 import org.icmp4j.util.JniUtil;
 
 
-
 /**
  * icmp4j
  * http://www.icmp4j.org
@@ -44,44 +43,44 @@ import org.icmp4j.util.JniUtil;
  */
 public class UnixJniNativeBridge extends NativeBridge {
 
-  /**
-   * The NativeBridge interface
-   * Invoked to initialize this object
-   */
-  @Override
-  public void initialize () {
-    JniUtil.loadLibraryBestEffort ("icmp4jJNI");
-    final Icmp4jJNI jniRequest = new Icmp4jJNI ();
-    String version = jniRequest.icmp_test ();
-    logger.info ("using icmp4jJNI v " + version );
-  }
+    /**
+     * The NativeBridge interface
+     * Invoked to initialize this object
+     */
+    @Override
+    public void initialize() {
+        JniUtil.loadLibraryBestEffort("icmp4jJNI");
+        final Icmp4jJNI jniRequest = new Icmp4jJNI();
+        String version = jniRequest.icmp_test();
+        logger.info("using icmp4jJNI v " + version);
+    }
 
 
-  @Override
-  public IcmpPingResponse executePingRequest (IcmpPingRequest request) {
-    final IcmpPingResponse response = new IcmpPingResponse ();
-    final Icmp4jJNI jniRequest = new Icmp4jJNI ();
-    jniRequest.host = request.getHost ();
-    jniRequest.ttl = request.getTtl ();
-    jniRequest.packetSize = request.getPacketSize ();
-    jniRequest.timeOut = (int) request.getTimeout ();
+    @Override
+    public IcmpPingResponse executePingRequest(IcmpPingRequest request) {
+        final Icmp4jJNI jniRequest = new Icmp4jJNI();
+        jniRequest.host = request.getHost();
+        jniRequest.ttl = request.getTtl();
+        jniRequest.packetSize = request.getPacketSize();
+        jniRequest.timeOut = (int) request.getTimeout();
 
-    final long icmpSendEchoStartNanoTime = System.nanoTime ();
+        final long icmpSendEchoStartNanoTime = System.nanoTime();
 
-    jniRequest.icmp_start ();
+        jniRequest.icmp_start();
 
-    final long icmpSendEchoNanoDuration = System.nanoTime () - icmpSendEchoStartNanoTime;
-    final long icmpSendEchoDuration = icmpSendEchoNanoDuration / 1000 / 1000;
+        final long icmpSendEchoNanoDuration = System.nanoTime() - icmpSendEchoStartNanoTime;
+        final long icmpSendEchoDuration = icmpSendEchoNanoDuration / 1000 / 1000;
 
-    response.setDuration (icmpSendEchoDuration);
-    response.setSuccessFlag (jniRequest.retCode == 1);
-    response.setTimeoutFlag (jniRequest.hasTimeout == 1);
-    response.setErrorMessage (jniRequest.errorMsg);
-    response.setHost (jniRequest.address);
-    response.setSize (jniRequest.bytes);
-    response.setRtt (jniRequest.rtt);
-    response.setTtl (jniRequest.ttl);
-    return response;
-  }
+        return IcmpPingResponse.builder()
+                .withDuration(icmpSendEchoDuration)
+                .withSuccessFlag(jniRequest.retCode == 1)
+                .withTimeoutFlag(jniRequest.hasTimeout == 1)
+                .withErrorMessage(jniRequest.errorMsg)
+                .withHost(jniRequest.address)
+                .withSize(jniRequest.bytes)
+                .withRtt(jniRequest.rtt)
+                .withTtl(jniRequest.ttl)
+                .build();
+    }
 
 }

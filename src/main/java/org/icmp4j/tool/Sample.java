@@ -1,32 +1,33 @@
 package org.icmp4j.tool;
 
-import org.icmp4j.IcmpPingUtil;
 import org.icmp4j.IcmpPingRequest;
 import org.icmp4j.IcmpPingResponse;
+import org.icmp4j.IcmpPingUtil;
 
 // Sample class, copyright 2009 and beyond, icmp4j
 public class Sample {
-  
-  // the java entry point
-  public static void main (final String[] args)
-    throws Exception {
 
-    // request
-    final IcmpPingRequest request = IcmpPingUtil.createIcmpPingRequest ();
-    request.setHost ("www.google.org");
+    // the java entry point
+    public static void main(final String[] args)
+            throws Exception {
 
-    // repeat a few times
-    for (int count = 1; count <= 4; count ++) {
+        // request
+        final IcmpPingRequest request = IcmpPingUtil.createIcmpPingRequestBuilder()
+                .withHost("www.google.org")
+                .build();
 
-      // delegate
-      final IcmpPingResponse response = IcmpPingUtil.executePingRequest (request);
+        // repeat a few times
+        for (int count = 1; count <= 4; count++) {
 
-      // log
-      final String formattedResponse = IcmpPingUtil.formatResponse (response);
-      System.out.println (formattedResponse);
+            // delegate
+            final IcmpPingResponse response = IcmpPingUtil.executePingRequest(request);
 
-      // rest
-      Thread.sleep (1000);
+            // log
+            final String formattedResponse = IcmpPingUtil.formatResponse(response);
+            System.out.println(formattedResponse);
+
+            // rest
+            Thread.sleep(1000);
+        }
     }
-  }
 }

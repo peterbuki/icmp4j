@@ -1,5 +1,8 @@
 package org.icmp4j;
 
+import lombok.Builder;
+import lombok.Data;
+
 /**
  * Internet Control Message Protocol for Java (ICMP4J)
  * http://www.icmp4j.org
@@ -35,66 +38,114 @@ package org.icmp4j;
  * Date: May 23, 2014
  * Time: 7:08:09 PM
  */
+@Data
+@Builder(setterPrefix = "with")
 public class IcmpPingResponse {
 
-  // my attributes
-  private boolean successFlag;
-  private boolean timeoutFlag;
-  private String errorMessage;
-  private Throwable throwable;
-  private String host;
-  private int size;
-  private int rtt;
-  private int ttl;
-  private long duration;
-  
-  // my attributes
-  public void setSuccessFlag (final boolean successFlag) { this.successFlag = successFlag; }
-  public boolean getSuccessFlag () { return successFlag; }
-  
-  public void setTimeoutFlag (final boolean timeoutFlag) { this.timeoutFlag = timeoutFlag; }
-  public boolean getTimeoutFlag () { return timeoutFlag; }
-  
-  public void setErrorMessage (final String errorMessage) { this.errorMessage = errorMessage; }
-  public String getErrorMessage () { return errorMessage; }
-  
-  public void setThrowable (final Throwable throwable) { this.throwable = throwable; }
-  public Throwable getThrowable () { return throwable; }
-  
-  public void setHost (final String host) { this.host = host; }
-  public String getHost () { return host; }
-  
-  public void setSize (final int size) { this.size = size; }
-  public int getSize () { return size; }
-  
-  public void setRtt (final int rtt) { this.rtt = rtt; }
-  public int getRtt () { return rtt; }
-  
-  public void setTtl (final int ttl) { this.ttl = ttl; }
-  public int getTtl () { return ttl; }
-  
-  public void setDuration (final long duration) { this.duration = duration; }
-  public long getDuration () { return duration; }
+    // my attributes
+    private boolean successFlag;
+    private boolean timeoutFlag;
+    private String errorMessage;
+    private Throwable throwable;
+    private String host;
+    private int size;
+    private int rtt;
+    private int ttl;
+    private long duration;
 
-  /**
-   * The Object interface
-   * @return String
-   */
-  @Override
-  public String toString () {
-    
-    return
-      "[" +
-      "hashCode: " + super.hashCode () + ", " +
-      "successFlag: " + successFlag + ", " +
-      "timeoutFlag: " + timeoutFlag + ", " +
-      "errorMessage: " + errorMessage + ", " +
-      "throwable: " + throwable + ", " +
-      "host: " + host + ", " +
-      "size: " + size + ", " +
-      "rtt: " + rtt + ", " +
-      "ttl: " + ttl + ", " +
-      "duration: " + duration +
-      "]";
-  }
+    // my attributes
+    public void setSuccessFlag(final boolean successFlag) {
+        this.successFlag = successFlag;
+    }
+
+    public boolean getSuccessFlag() {
+        return successFlag;
+    }
+
+    public void setTimeoutFlag(final boolean timeoutFlag) {
+        this.timeoutFlag = timeoutFlag;
+    }
+
+    public boolean getTimeoutFlag() {
+        return timeoutFlag;
+    }
+
+    public void setErrorMessage(final String errorMessage) {
+        this.errorMessage = errorMessage;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public void setThrowable(final Throwable throwable) {
+        this.throwable = throwable;
+    }
+
+    public Throwable getThrowable() {
+        return throwable;
+    }
+
+    public void setHost(final String host) {
+        this.host = host;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public void setSize(final int size) {
+        this.size = size;
+    }
+
+    public int getSize() {
+        return size;
+    }
+
+    public void setRtt(final int rtt) {
+        this.rtt = rtt;
+    }
+
+    public int getRtt() {
+        return rtt;
+    }
+
+    public void setTtl(final int ttl) {
+        this.ttl = ttl;
+    }
+
+    public int getTtl() {
+        return ttl;
+    }
+
+    public void setDuration(final long duration) {
+        this.duration = duration;
+    }
+
+    public long getDuration() {
+        return duration;
+    }
+
+    /**
+     * The Object interface
+     *
+     * @return String
+     */
+    @Override
+    public String toString() {
+
+        return
+                "[" +
+                        "hashCode: " + super.hashCode() + ", " +
+                        "successFlag: " + successFlag + ", " +
+                        "timeoutFlag: " + timeoutFlag + ", " +
+                        "errorMessage: " + errorMessage + ", " +
+                        "throwable: " + throwable + ", " +
+                        "host: " + host + ", " +
+                        "size: " + size + ", " +
+                        "rtt: " + rtt + ", " +
+                        "ttl: " + ttl + ", " +
+                        "duration: " + duration +
+                        "]";
+    }
 }

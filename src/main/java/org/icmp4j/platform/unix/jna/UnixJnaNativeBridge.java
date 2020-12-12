@@ -1,13 +1,11 @@
 package org.icmp4j.platform.unix.jna;
 
-import org.icmp4j.Icmp4jUtil;
-import org.icmp4j.IcmpPingRequest;
-import org.icmp4j.IcmpPingResponse;
-import org.icmp4j.platform.NativeBridge;
-
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.PointerByReference;
+import org.icmp4j.IcmpPingRequest;
+import org.icmp4j.IcmpPingResponse;
+import org.icmp4j.platform.NativeBridge;
 
 /**
  * Internet Control Message Protocol for Java (ICMP4J)
@@ -45,58 +43,60 @@ import com.sun.jna.ptr.PointerByReference;
  * Time: 8:59:11 PM
  */
 public class UnixJnaNativeBridge extends NativeBridge {
-  
-  /**
-	   * The NativeBridge interface
-	   * Invoked to initialize this object
-	   */
-	  @Override
-	  public void initialize () {
 
-	   // delegate
-		 LibraryUtil.initialize ();
-		 final IcmpLibrary icmpLibrary = LibraryUtil.getIcmpLibrary ();
-		    
-		 PointerByReference ptrRef = new PointerByReference ();
-		 icmpLibrary.icmp4j_exist (ptrRef);
-		 Pointer p = ptrRef.getValue ();
-		 String version = p.getString (0);
-     logger.info ("using icmp4jJNA v " + version);
-     icmpLibrary.icmp4j_exist_free (p);
-	 }
-	  
-	
-	@Override
-	public IcmpPingResponse executePingRequest(IcmpPingRequest request) {
-		
-    final IcmpLibrary icmpLibrary = LibraryUtil.getIcmpLibrary ();
-		
-		IcmpLibrary.Icmp4jStruct.ByReference ref = new IcmpLibrary.Icmp4jStruct.ByReference ();
-		ref.host = request.getHost ();
-		ref.ttl = request.getTtl ();
-		ref.packetSize = request.getPacketSize ();
-		ref.timeOut = new NativeLong (request.getTimeout ());
-		
-		final long icmpSendEchoStartNanoTime = System.nanoTime ();
-		
-		final IcmpPingResponse response = new IcmpPingResponse ();
-		
-		icmpLibrary.icmp4j_start (ref);
-		
-		final long icmpSendEchoNanoDuration = System.nanoTime () - icmpSendEchoStartNanoTime;
-	  final long icmpSendEchoDuration = icmpSendEchoNanoDuration / 1000 / 1000;
-		  
-		response.setSuccessFlag ( ref.retCode == 1 );
-		response.setTimeoutFlag ( ref.hasTimeout == 1 );
-		response.setErrorMessage ( ref.errorMsg );
-		response.setHost ( ref.address );
-		response.setSize ( ref.bytes );
-		response.setRtt ( ref.rtt );
-		response.setTtl ( ref.ttl );
-		icmpLibrary.icmp4j_free ( ref );
-		
-	  response.setDuration ( icmpSendEchoDuration );
-		return response;
-	}
+    /**
+     * The NativeBridge interface
+     * Invoked to initialize this object
+     */
+    @Override
+    public void initialize() {
+
+        // delegate
+        LibraryUtil.initialize();
+        final IcmpLibrary icmpLibrary = LibraryUtil.getIcmpLibrary();
+
+        PointerByReference ptrRef = new PointerByReference();
+        icmpLibrary.icmp4j_exist(ptrRef);
+        Pointer p = ptrRef.getValue();
+        String version = p.getString(0);
+        logger.info("using icmp4jJNA v " + version);
+        icmpLibrary.icmp4j_exist_free(p);
+    }
+
+
+    @Override
+    public IcmpPingResponse executePingRequest(IcmpPingRequest request) {
+
+        final IcmpLibrary icmpLibrary = LibraryUtil.getIcmpLibrary();
+
+        IcmpLibrary.Icmp4jStruct.ByReference ref = new IcmpLibrary.Icmp4jStruct.ByReference();
+        ref.host = request.getHost();
+        ref.ttl = request.getTtl();
+        ref.packetSize = request.getPacketSize();
+        ref.timeOut = new NativeLong(request.getTimeout());
+
+        final long icmpSendEchoStartNanoTime = System.nanoTime();
+
+
+        icmpLibrary.icmp4j_start(ref);
+
+        final long icmpSendEchoNanoDuration = System.nanoTime() - icmpSendEchoStartNanoTime;
+        final long icmpSendEchoDuration = icmpSendEchoNanoDuration / 1000 / 1000;
+
+        IcmpPingResponse.IcmpPingResponseBuilder responseBuilder = IcmpPingResponse.builder()
+                .withSuccessFlag(ref.retCode == 1)
+                .withTimeoutFlag(ref.hasTimeout == 1)
+                .withErrorMessage(ref.errorMsg)
+                .withHost(ref.address)
+                .withSize(ref.bytes)
+                .withRtt(ref.rtt)
+                .withTtl(ref.ttl);
+        icmpLibrary.icmp4j_free(ref);
+
+        return responseBuilder
+                .withDuration(icmpSendEchoDuration)
+                .build();
+
+    }
 
 }
